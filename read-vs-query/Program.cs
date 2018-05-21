@@ -22,8 +22,8 @@ namespace writedemo
 
         static string EndpointUrl;
         static string PrimaryKey;
-        string database = Config["Database"];
-        string collection = Config["Collection"];
+        static string database;
+        static string collection;
         private DocumentClient client = new DocumentClient(new Uri(EndpointUrl), PrimaryKey);
         public static void Main(string[] args)
         {
@@ -35,6 +35,8 @@ namespace writedemo
 
             EndpointUrl = Config["EndpointUrl"];
             PrimaryKey = Config["PrimaryKey"];
+            database = Config["Database"];
+            collection = Config["Collection"];
             try
             {
                 Program p = new Program();
