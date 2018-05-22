@@ -10,13 +10,12 @@ using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
 using Newtonsoft.Json;
 
-namespace writedemo
+namespace ReadsAndQueries
 {
     class Program
     {
 
-        const int runs = 50;
-
+        const int runs = 10;
 
         public static IConfiguration Config { get; set; }
 
@@ -24,7 +23,7 @@ namespace writedemo
         static string PrimaryKey;
         static string database;
         static string collection;
-        private DocumentClient client = new DocumentClient(new Uri(EndpointUrl), PrimaryKey);
+        static DocumentClient client;
         public static void Main(string[] args)
         {
 
@@ -37,6 +36,9 @@ namespace writedemo
             PrimaryKey = Config["PrimaryKey"];
             database = Config["Database"];
             collection = Config["Collection"];
+
+            client = new DocumentClient(new Uri(EndpointUrl), PrimaryKey);
+
             try
             {
                 Program p = new Program();
@@ -59,6 +61,7 @@ namespace writedemo
 
         private async Task CompareReadVsQuery()
         {
+            await client.OpenAsync().ConfigureAwait(false);
             var random = new Random((int)DateTime.Now.Ticks);
             var doc = new SampleDocument
             {
@@ -80,18 +83,23 @@ namespace writedemo
                 prop15 = Guid.NewGuid().ToString(),
                 prop16 = random.Next(100)
             };
-
+ 
             await this.CreateSampleDocument(database, collection, doc);
             double readRU = await this.ReadSampleDocument(doc.Id);
             Console.WriteLine("Read cost: {0} RU", readRU);
+
             double queryRU = await this.QuerySampleDocument(doc.Id);
             Console.WriteLine("Query cost: {0} RU", queryRU);
+
+            
+            double queryRangeRU = await this.QuerySampleDocumentByRange(doc.Id);
+            Console.WriteLine("Query cost: {0} RU", queryRangeRU);
         }
 
         private async Task<double> CreateSampleDocument(string databaseName, string collectionName, SampleDocument sample)
         {
 
-            var result = await this.client.CreateDocumentAsync(UriFactory.CreateDocumentCollectionUri(databaseName, collectionName), sample);
+            var result = await client.CreateDocumentAsync(UriFactory.CreateDocumentCollectionUri(databaseName, collectionName), sample);
             return result.RequestCharge;
 
         }
@@ -99,11 +107,8 @@ namespace writedemo
         {
             var docUri = UriFactory.CreateDocumentUri(database, collection, id);
             var result = await client.ReadDocumentAsync(docUri);
-            Console.WriteLine(result.Resource.ToString());
             return result.RequestCharge;
         }
-
-
 
         private async Task<double> QuerySampleDocument(string id)
         {
@@ -113,6 +118,22 @@ namespace writedemo
 
             var queryable = client.CreateDocumentQuery(collectionUri,
                 String.Format("SELECT * FROM docs WHERE docs.Id = '{0}'", id), queryOptions).AsDocumentQuery();
+            while (queryable.HasMoreResults)
+            {
+                FeedResponse<dynamic> queryResponse = await queryable.ExecuteNextAsync<dynamic>();
+                RU += queryResponse.RequestCharge;
+            }
+            return RU;
+        }
+
+        private async Task<double> QuerySampleDocumentByRange(string id)
+        {
+            var RU = 0.0;
+            var collectionUri = UriFactory.CreateDocumentCollectionUri(database, collection);
+            FeedOptions queryOptions = new FeedOptions { MaxItemCount = 1 };
+
+            var queryable = client.CreateDocumentQuery(collectionUri,
+                String.Format("SELECT top 1 * FROM docs WHERE docs.prop10 > 50", id), queryOptions).AsDocumentQuery();
             while (queryable.HasMoreResults)
             {
                 FeedResponse<dynamic> queryResponse = await queryable.ExecuteNextAsync<dynamic>();
