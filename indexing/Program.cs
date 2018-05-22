@@ -9,7 +9,7 @@ using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Newtonsoft.Json;
 
-namespace writedemo
+namespace Indexing
 {
     class Program
     {

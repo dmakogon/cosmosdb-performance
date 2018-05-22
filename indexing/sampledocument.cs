@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace writedemo
+namespace Indexing
 {
     public class SampleDocument
     {
