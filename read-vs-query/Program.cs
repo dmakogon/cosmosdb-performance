@@ -93,7 +93,7 @@ namespace ReadsAndQueries
 
             
             double queryRangeRU = await this.QuerySampleDocumentByRange(doc.Id);
-            Console.WriteLine("Query cost: {0} RU", queryRangeRU);
+            Console.WriteLine("Range Query cost: {0} RU", queryRangeRU);
         }
 
         private async Task<double> CreateSampleDocument(string databaseName, string collectionName, SampleDocument sample)
