@@ -76,9 +76,9 @@ namespace Consistency
                 prop16 = random.Next(100)
             };
 
-            doc.Id = Guid.NewGuid().ToString();
-            var strongWriteResults = await this.CreateSampleDocument(database, collection, doc, ConsistencyLevel.Strong);
-            var strongReadResults = await this.ReadSampleDocument(strongWriteResults.Resource.Id, ConsistencyLevel.Strong);
+            //doc.Id = Guid.NewGuid().ToString();
+            //var strongWriteResults = await this.CreateSampleDocument(database, collection, doc, ConsistencyLevel.Strong);
+            //var strongReadResults = await this.ReadSampleDocument(strongWriteResults.Resource.Id, ConsistencyLevel.Strong);
 
             doc.Id = Guid.NewGuid().ToString();
             var boundedWriteResults = await this.CreateSampleDocument(database, collection, doc, ConsistencyLevel.BoundedStaleness);
@@ -93,12 +93,12 @@ namespace Consistency
             var eventualReadResults = await this.ReadSampleDocument(eventualWriteResults.Resource.Id, ConsistencyLevel.Eventual);
 
             
-            PrintDetails(strongWriteResults, "Strong write");
+            //PrintDetails(strongWriteResults, "Strong write");
             PrintDetails(boundedWriteResults, "Bounded write");
             PrintDetails(sessionWriteResults, "Session write");
             PrintDetails(eventualWriteResults, "Eventual write");
 
-            PrintDetails(strongReadResults, "Strong read");
+            //PrintDetails(strongReadResults, "Strong read");
             PrintDetails(boundedReadResults, "Bounded read");
             PrintDetails(sessionReadResults, "Session read");
             PrintDetails(eventualReadResults, "Eventual read");
