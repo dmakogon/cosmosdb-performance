@@ -39,7 +39,7 @@ namespace RequestUnits
             // NOTE: RU must be a multiple of 100.
             // Also note: The RU range must be within the range of the collection type
             newRU = Int32.Parse( Config["RequestUnits"]) ;
-            Console.WriteLine("Setting collection throughput to {0} RU...", newRU);
+
             client = new DocumentClient(new Uri(EndpointUrl), PrimaryKey);
 
             try
@@ -66,25 +66,34 @@ namespace RequestUnits
         {
             await client.OpenAsync().ConfigureAwait(false);
  
-            await this.SetCollectionRU(newRU);
+            var originalRU = await this.SetCollectionRU(newRU);
+            await this.SetCollectionRU(originalRU);
         }
-        private async Task SetCollectionRU(int RU)
+        private async Task<int> SetCollectionRU(int targetRU)
         {
             var collectionUri = UriFactory.CreateDocumentCollectionUri(database, collection).ToString();
-            Console.WriteLine("collection URI: {0}", collectionUri);
 
             // to query for a collection's offer, we first need the collection object
             // from the database, which will contain the (needed) self-link.
             DocumentCollection coll = await client.ReadDocumentCollectionAsync(collectionUri);
 
-            var offer = client.CreateOfferQuery()
+            // Note: The "Offer" class does not expose throughput as a property (it's a legacy
+            // class). The new "OfferV2" class *does* expose it, and we can cast the returned Offer
+            // class to OfferV2. This allows us to capture the collection's current throughput,
+            // before scaling to a different number.
+            var offer = (OfferV2) client.CreateOfferQuery()
                 .Where(r => r.ResourceLink == coll.SelfLink)    
                 .AsEnumerable()
                 .SingleOrDefault();
     
-            offer = new OfferV2(offer, RU);
+            var currentRU = offer.Content.OfferThroughput;
+            Console.WriteLine("Changing RU from {0} to {1}", currentRU, targetRU);
+
+            // we cannot just adjust the current offer's throughput, as the property is
+            // read-only. We have to create a new instance, for the purpose of scaling.
+            offer = new OfferV2(offer, targetRU);
             await client.ReplaceOfferAsync(offer);
-            Console.WriteLine("Finished.");
+            return currentRU;
         }
     }
 }
